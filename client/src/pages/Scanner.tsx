@@ -70,8 +70,18 @@ export function ScannerPage() {
       const videoElement = document.getElementById("video-preview") as HTMLVideoElement;
       if (!videoElement) return;
 
-      const controls = await reader.decodeFromVideoDevice(
-        undefined, 
+      // Use specific constraints to avoid "setPhotoOptions failed" which often happens
+      // when the library tries to auto-configure advanced camera features.
+      const constraints: MediaStreamConstraints = {
+        video: { 
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+
+      const controls = await reader.decodeFromConstraints(
+        constraints,
         videoElement,
         (result, error) => {
           if (result && !isClaimed && !mutation.isPending) {
