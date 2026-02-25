@@ -57,7 +57,8 @@ export function ScannerPage() {
       (result) => {
         if (!isClaimed && !mutation.isPending) {
           setScanResult(result);
-          scanner.clear();
+          // Don't stop the scanner immediately to avoid camera freeze on some devices
+          // scanner.clear(); 
           mutation.mutate(result);
         }
       },

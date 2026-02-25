@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Sun, CheckCircle2, Gift, QrCode, UploadCloud, Clock } from "lucide-react";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useCreateGoodDeed, useGoodDeeds } from "@/hooks/use-activities";
 import { format } from "date-fns";
@@ -96,14 +97,15 @@ export function ActivitiesPage() {
                       <h3 className="font-bold text-amber-800 text-lg mb-2 flex items-center gap-2">
                         <Sun className="text-amber-500" size={20} /> เช็คชื่อยามเช้า
                       </h3>
-                      <p className="text-amber-700/80 text-sm mb-4">เข้าร่วมกิจกรรมหน้าเสาธง ระหว่าง 06:00 - 08:00 น. เพื่อรับแต้มความดี 1 แต้ม</p>
-                      <Button 
-                        onClick={handleMorningCheck}
-                        disabled={createGoodDeed.isPending}
-                        className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-md shadow-amber-500/25 h-12 font-medium"
-                      >
-                        {createGoodDeed.isPending ? "กำลังบันทึก..." : "เช็คชื่อ (รับ 1 แต้ม)"}
-                      </Button>
+                      <p className="text-amber-700/80 text-sm mb-4">สแกนคิวอาร์โค้ดกิจกรรมหน้าเสาธงเพื่อรับแต้มความดี 1 แต้ม</p>
+                      <Link href="/scanner">
+                        <Button 
+                          className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-md shadow-amber-500/25 h-12 font-medium flex items-center justify-center gap-2"
+                        >
+                          <QrCode size={20} />
+                          สแกน QR เพื่อเช็คชื่อ
+                        </Button>
+                      </Link>
                     </CardContent>
                   </Card>
 
@@ -249,9 +251,11 @@ export function ActivitiesPage() {
                   </div>
 
                   {/* Scan QR Button */}
-                  <Button className="w-full h-14 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl shadow-lg shadow-slate-800/20 flex items-center justify-center gap-2 text-base font-medium">
-                    <QrCode size={20} /> สแกน QR รับแสตมป์
-                  </Button>
+                  <Link href="/scanner">
+                    <Button className="w-full h-14 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl shadow-lg shadow-slate-800/20 flex items-center justify-center gap-2 text-base font-medium">
+                      <QrCode size={20} /> สแกน QR รับแสตมป์
+                    </Button>
+                  </Link>
 
                   {/* Rewards List */}
                   <div>

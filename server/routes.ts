@@ -131,22 +131,43 @@ export async function registerRoutes(
 
   app.post(api.goodDeeds.claimQr.path, requireAuth, async (req: any, res) => {
     const { code } = req.body;
-    // For now, any QR code starting with 'GOOD_DEED_' is valid and gives 1 point
-    if (typeof code === 'string' && code.startsWith('GOOD_DEED_')) {
+    
+    // Valid QR codes for good deeds: GOOD_DEED_MORNING, GOOD_DEED_CLEANUP, GOOD_DEED_VOLUNTEER
+    const validCodes: Record<string, string> = {
+      'GOOD_DEED_MORNING': 'เช็คชื่อกิจกรรมยามเช้า (ผ่าน QR)',
+      'GOOD_DEED_CLEANUP': 'กิจกรรมบำเพ็ญประโยชน์ (ทำความสะอาด)',
+      'GOOD_DEED_VOLUNTEER': 'กิจกรรมจิตอาสาอื่นๆ'
+    };
+
+    if (typeof code === 'string' && validCodes[code]) {
       try {
+        // Check if already claimed today (prevent double scanning)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const existingDeeds = await storage.getGoodDeeds(req.user.id);
+        const alreadyClaimed = existingDeeds.some(d => {
+          const dDate = new Date(d.createdAt!);
+          dDate.setHours(0, 0, 0, 0);
+          return dDate.getTime() === today.getTime() && d.details?.includes(code);
+        });
+
+        if (alreadyClaimed) {
+          return res.status(400).json({ message: "คุณได้สแกนรหัสนี้ไปแล้วในวันนี้" });
+        }
+
         await storage.addGoodDeedPoints(req.user.id, 1);
-        // Also record it as a good deed entry
         await storage.createGoodDeed(req.user.id, {
           type: 'qr_claim',
-          details: `สแกนรับแต้มจากรหัส: ${code}`,
+          details: `${validCodes[code]} [${code}]`,
           imageUrl: null
         });
-        return res.status(200).json({ message: "ได้รับ 1 แต้มความดีเรียบร้อยแล้ว!", points: 1 });
+        return res.status(200).json({ message: `ได้รับ 1 แต้มจาก${validCodes[code]}เรียบร้อยแล้ว!`, points: 1 });
       } catch (err) {
         return res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกแต้ม" });
       }
     }
-    res.status(400).json({ message: "คิวอาร์โค้ดไม่ถูกต้อง" });
+    res.status(400).json({ message: "คิวอาร์โค้ดไม่ถูกต้องหรือหมดอายุ" });
   });
 
   app.get(api.garbage.list.path, requireAuth, async (req: any, res) => {
