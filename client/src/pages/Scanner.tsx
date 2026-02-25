@@ -56,7 +56,11 @@ export function ScannerPage() {
       setIsCameraActive(false);
 
       if (controlsRef.current) {
-        controlsRef.current.stop();
+        try {
+          controlsRef.current.stop();
+        } catch (e) {
+          console.debug("Error stopping existing scanner:", e);
+        }
         controlsRef.current = null;
       }
 
@@ -81,6 +85,10 @@ export function ScannerPage() {
       controlsRef.current = controls;
       setIsCameraActive(true);
     } catch (err: any) {
+      if (err?.name === "AbortError" || err?.name === "StreamPackageError") {
+        console.debug("Scanner startup aborted or already running:", err);
+        return;
+      }
       console.error("Failed to start scanner:", err);
       setHasError(true);
       setIsCameraActive(false);
@@ -99,7 +107,11 @@ export function ScannerPage() {
 
   const stopScanner = () => {
     if (controlsRef.current) {
-      controlsRef.current.stop();
+      try {
+        controlsRef.current.stop();
+      } catch (e) {
+        console.debug("Error stopping scanner:", e);
+      }
       controlsRef.current = null;
     }
     setIsCameraActive(false);
