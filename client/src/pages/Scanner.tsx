@@ -118,9 +118,11 @@ export function ScannerPage() {
   const stopScanner = () => {
     if (controlsRef.current) {
       try {
+        // Wrap stop in try-catch to prevent "setPhotoOptions failed" or other
+        // camera cleanup errors from crashing the UI.
         controlsRef.current.stop();
       } catch (e) {
-        console.debug("Error stopping scanner:", e);
+        console.debug("Error stopping scanner (ignored):", e);
       }
       controlsRef.current = null;
     }
