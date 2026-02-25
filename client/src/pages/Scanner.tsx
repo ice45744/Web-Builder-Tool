@@ -103,10 +103,13 @@ export function ScannerPage() {
           await scannerRef.current.stop();
         }
         // Use clear to remove any leftover elements from the DOM
-        try {
-          scannerRef.current.clear();
-        } catch (e) {
-          // Ignore clear errors if element already removed
+        const readerElement = document.getElementById("reader");
+        if (readerElement) {
+          try {
+            scannerRef.current.clear();
+          } catch (e) {
+            // Ignore clear errors if element already removed
+          }
         }
         scannerRef.current = null;
         setIsCameraActive(false);
@@ -136,45 +139,45 @@ export function ScannerPage() {
 
       <Card className="flex-1 border-none shadow-lg bg-white/80 backdrop-blur-md overflow-hidden flex flex-col">
         <CardContent className="p-6 flex flex-col items-center justify-center flex-1">
-          {!isClaimed ? (
-            <>
-              <div 
-                id="reader" 
-                className={`w-full max-w-[300px] aspect-square overflow-hidden rounded-2xl border-2 border-primary/20 shadow-inner bg-slate-900 relative ${!isCameraActive ? 'flex items-center justify-center' : ''}`}
-              >
-                {!isCameraActive && !hasError && (
-                  <div className="flex flex-col items-center gap-2 text-white/50">
-                    <RefreshCw className="w-8 h-8 animate-spin" />
-                    <p className="text-sm">กำลังเปิดกล้อง...</p>
-                  </div>
-                )}
-                {hasError && (
-                  <div className="flex flex-col items-center gap-4 p-6 text-center text-white/70">
-                    <Camera className="w-12 h-12 opacity-50" />
-                    <p className="text-sm">ไม่สามารถเข้าถึงกล้องได้</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-white border-white/20 hover:bg-white/10"
-                      onClick={startScanner}
-                    >
-                      ลองใหม่อีกครั้ง
-                    </Button>
-                  </div>
-                )}
-              </div>
-              
-              <div className="mt-8 text-center space-y-4">
-                <div className="p-4 rounded-full bg-primary/5 inline-flex">
-                  <QrCode className="w-10 h-10 text-primary animate-pulse" />
+          <div className={isClaimed ? "hidden" : "w-full flex flex-col items-center"}>
+            <div 
+              id="reader" 
+              className={`w-full max-w-[300px] aspect-square overflow-hidden rounded-2xl border-2 border-primary/20 shadow-inner bg-slate-900 relative ${!isCameraActive ? 'flex items-center justify-center' : ''}`}
+            >
+              {!isCameraActive && !hasError && (
+                <div className="flex flex-col items-center gap-2 text-white/50">
+                  <RefreshCw className="w-8 h-8 animate-spin" />
+                  <p className="text-sm">กำลังเปิดกล้อง...</p>
                 </div>
-                <p className="text-slate-500 font-medium">
-                  {mutation.isPending ? "กำลังตรวจสอบ..." : "วางคิวอาร์โค้ดในกรอบเพื่อรับแต้ม"}
-                </p>
+              )}
+              {hasError && (
+                <div className="flex flex-col items-center gap-4 p-6 text-center text-white/70">
+                  <Camera className="w-12 h-12 opacity-50" />
+                  <p className="text-sm">ไม่สามารถเข้าถึงกล้องได้</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-white border-white/20 hover:bg-white/10"
+                    onClick={startScanner}
+                  >
+                    ลองใหม่อีกครั้ง
+                  </Button>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-8 text-center space-y-4">
+              <div className="p-4 rounded-full bg-primary/5 inline-flex">
+                <QrCode className="w-10 h-10 text-primary animate-pulse" />
               </div>
-            </>
-          ) : (
-            <div className="text-center space-y-6 animate-in zoom-in-95 duration-500">
+              <p className="text-slate-500 font-medium">
+                {mutation.isPending ? "กำลังตรวจสอบ..." : "วางคิวอาร์โค้ดในกรอบเพื่อรับแต้ม"}
+              </p>
+            </div>
+          </div>
+
+          {isClaimed && (
+            <div className="text-center space-y-6 animate-in zoom-in-95 duration-500 w-full">
               <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-green-100/50">
                 <CheckCircle2 className="w-12 h-12" strokeWidth={3} />
               </div>
