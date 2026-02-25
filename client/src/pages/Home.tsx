@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bell, ChevronRight, Award, Recycle } from "lucide-react";
+import { Bell, ChevronRight, Award, Recycle, ClipboardList, AlertTriangle } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 
