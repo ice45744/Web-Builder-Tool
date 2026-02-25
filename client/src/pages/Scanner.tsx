@@ -62,6 +62,13 @@ export function ScannerPage() {
       const readerElement = document.getElementById("reader");
       if (!readerElement) return;
 
+      // Clean up any existing instance properly first
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.clear();
+        } catch (e) {}
+      }
+
       const html5QrCode = new Html5Qrcode("reader");
       scannerRef.current = html5QrCode;
 
@@ -98,20 +105,19 @@ export function ScannerPage() {
 
   const stopScanner = async () => {
     if (scannerRef.current) {
+      const scanner = scannerRef.current;
+      scannerRef.current = null; // Clear ref immediately to prevent race conditions
+      
       try {
-        if (scannerRef.current.isScanning) {
-          await scannerRef.current.stop();
+        if (scanner.isScanning) {
+          await scanner.stop();
         }
-        // Use clear to remove any leftover elements from the DOM
-        const readerElement = document.getElementById("reader");
-        if (readerElement) {
-          try {
-            scannerRef.current.clear();
-          } catch (e) {
-            // Ignore clear errors if element already removed
-          }
-        }
-        scannerRef.current = null;
+        
+        // Always try to clear to remove UI elements
+        try {
+          await scanner.clear();
+        } catch (e) {}
+        
         setIsCameraActive(false);
       } catch (err) {
         console.error("Failed to stop scanner:", err);
