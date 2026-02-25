@@ -18,6 +18,31 @@ export function ActivitiesPage() {
 
   const [details, setDetails] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=baf409d03cf4975986f6d44b5a1a2919`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setImageUrl(data.data.url);
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleMorningCheck = () => {
     createGoodDeed.mutate({ type: "morning_check", details: "เช็คชื่อกิจกรรมยามเช้า", imageUrl: "" });
@@ -99,7 +124,32 @@ export function ActivitiesPage() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-slate-600">ลิงก์รูปภาพ (ถ้ามี)</label>
+                        <label className="text-xs font-medium text-slate-600">อัปโหลดรูปภาพ (ImgBB)</label>
+                        <div className="flex gap-2">
+                          <Input 
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="bg-slate-50 border-slate-200 focus:bg-white rounded-xl text-xs h-10"
+                            disabled={isUploading}
+                          />
+                        </div>
+                        {isUploading && <p className="text-[10px] text-primary animate-pulse">กำลังอัปโหลด...</p>}
+                        {imageUrl && (
+                          <div className="mt-2 relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200">
+                            <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                            <button 
+                              type="button"
+                              onClick={() => setImageUrl("")}
+                              className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg"
+                            >
+                              <Clock size={12} className="rotate-45" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-slate-600">หรือวางลิงก์รูปภาพ</label>
                         <Input 
                           placeholder="https://..."
                           className="bg-slate-50 border-slate-200 focus:bg-white rounded-xl"

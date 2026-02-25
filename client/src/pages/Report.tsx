@@ -20,6 +20,31 @@ export function ReportPage() {
   const [category, setCategory] = useState("");
   const [details, setDetails] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=baf409d03cf4975986f6d44b5a1a2919`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setImageUrl(data.data.url);
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +113,33 @@ export function ReportPage() {
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 ml-1 flex items-center gap-1.5">
-              <Camera size={16} className="text-slate-400" /> รูปภาพประกอบ (ลิงก์)
+              <Camera size={16} className="text-slate-400" /> อัปโหลดรูปภาพประกอบ (ImgBB)
+            </label>
+            <Input 
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="h-12 bg-white border-slate-200 rounded-xl focus:ring-orange-500/20 py-2"
+              disabled={isUploading}
+            />
+            {isUploading && <p className="text-xs text-orange-500 animate-pulse">กำลังอัปโหลด...</p>}
+            {imageUrl && (
+              <div className="mt-2 relative w-32 h-32 rounded-xl overflow-hidden border border-slate-200">
+                <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                <button 
+                  type="button"
+                  onClick={() => setImageUrl("")}
+                  className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"
+                >
+                  <AlertTriangle size={12} className="rotate-45" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 ml-1 flex items-center gap-1.5">
+              <Info size={16} className="text-slate-400" /> หรือวางลิงก์รูปภาพประกอบ
             </label>
             <Input 
               placeholder="https://..."
