@@ -6,16 +6,34 @@ import { z } from "zod";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import bcrypt from "bcrypt";
+
+const BCRYPT_ROUNDS = 12;
+
+function sanitizeUser(user: any) {
+  const { password, ...safe } = user;
+  return safe;
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET must be set. Did you forget to configure this secret?");
+  }
+
   // Setup Session
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'secret',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    },
     store: storage.sessionStore,
   }));
 
@@ -23,7 +41,11 @@ export async function registerRoutes(
   passport.use(new LocalStrategy({ usernameField: "studentId" }, async (studentId, password, done) => {
     try {
       const user = await storage.getUserByStudentId(studentId);
-      if (!user || user.password !== password) {
+      if (!user) {
+        return done(null, false, { message: "Invalid credentials" });
+      }
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
         return done(null, false, { message: "Invalid credentials" });
       }
       return done(null, user);
@@ -58,10 +80,11 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Student ID already registered" });
       }
       const role = input.committeeCode === "STCOUNCIL2026" ? "committee" : "student";
-      const user = await storage.createUser({ ...input, role });
+      const hashedPassword = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
+      const user = await storage.createUser({ ...input, password: hashedPassword, role });
       req.login(user, (err) => {
         if (err) throw err;
-        res.status(201).json(user);
+        res.status(201).json(sanitizeUser(user));
       });
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -72,7 +95,7 @@ export async function registerRoutes(
   });
 
   app.post(api.auth.login.path, passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+    res.status(200).json(sanitizeUser(req.user));
   });
 
   app.post(api.auth.logout.path, (req, res, next) => {
@@ -84,7 +107,7 @@ export async function registerRoutes(
 
   app.get(api.auth.me.path, (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ message: "Unauthorized" });
-    res.status(200).json(req.user);
+    res.status(200).json(sanitizeUser(req.user));
   });
 
   app.get(api.goodDeeds.list.path, requireAuth, async (req: any, res) => {
