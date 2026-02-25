@@ -61,6 +61,15 @@ export const api = {
         201: z.custom<typeof goodDeeds.$inferSelect>(),
         400: errorSchemas.validation
       }
+    },
+    claimQr: {
+      method: 'POST' as const,
+      path: '/api/good-deeds/claim-qr' as const,
+      input: z.object({ code: z.string() }),
+      responses: {
+        200: z.object({ message: z.string(), points: z.number() }),
+        400: z.object({ message: z.string() })
+      }
     }
   },
   garbage: {

@@ -128,6 +128,26 @@ export async function registerRoutes(
     }
   });
 
+  app.post(api.goodDeeds.claimQr.path, requireAuth, async (req: any, res) => {
+    const { code } = req.body;
+    // For now, any QR code starting with 'GOOD_DEED_' is valid and gives 1 point
+    if (typeof code === 'string' && code.startsWith('GOOD_DEED_')) {
+      try {
+        await storage.addGoodDeedPoints(req.user.id, 1);
+        // Also record it as a good deed entry
+        await storage.createGoodDeed(req.user.id, {
+          type: 'qr_claim',
+          details: `สแกนรับแต้มจากรหัส: ${code}`,
+          imageUrl: null
+        });
+        return res.status(200).json({ message: "ได้รับ 1 แต้มความดีเรียบร้อยแล้ว!", points: 1 });
+      } catch (err) {
+        return res.status(500).json({ message: "เกิดข้อผิดพลาดในการบันทึกแต้ม" });
+      }
+    }
+    res.status(400).json({ message: "คิวอาร์โค้ดไม่ถูกต้อง" });
+  });
+
   app.get(api.garbage.list.path, requireAuth, async (req: any, res) => {
     const tx = await storage.getGarbageTransactions(req.user.id);
     res.status(200).json(tx);

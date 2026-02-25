@@ -20,6 +20,8 @@ export interface IStorage {
   
   createIssue(userId: number, issue: InsertIssue): Promise<Issue>;
 
+  addGoodDeedPoints(userId: number, points: number): Promise<User>;
+
   getAnnouncements(): Promise<Announcement[]>;
   createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
   
@@ -81,6 +83,17 @@ export class DatabaseStorage implements IStorage {
   async createIssue(userId: number, issue: InsertIssue): Promise<Issue> {
     const [created] = await db.insert(issues).values({ ...issue, userId }).returning();
     return created;
+  }
+
+  async addGoodDeedPoints(userId: number, points: number): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const [updated] = await db.update(users)
+      .set({ goodDeedPoints: user.goodDeedPoints + points })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
   }
 
   async getAnnouncements(): Promise<Announcement[]> {

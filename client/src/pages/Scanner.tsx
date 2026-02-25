@@ -4,12 +4,47 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { QrCode, ArrowLeft, RefreshCw } from "lucide-react";
+import { QrCode, ArrowLeft, RefreshCw, CheckCircle2 } from "lucide-react";
+import { api } from "@shared/routes";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function ScannerPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [scanResult, setScanResult] = useState<string | null>(null);
+  const [isClaimed, setIsClaimed] = useState(false);
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await fetch(api.goodDeeds.claimQr.path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "สแกนไม่สำเร็จ");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setIsClaimed(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      queryClient.invalidateQueries({ queryKey: [api.goodDeeds.list.path] });
+      toast({
+        title: "สำเร็จ!",
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "ผิดพลาด",
+        description: error.message,
+      });
+    }
+  });
 
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
@@ -20,13 +55,11 @@ export function ScannerPage() {
 
     scanner.render(
       (result) => {
-        setScanResult(result);
-        scanner.clear();
-        toast({
-          title: "สแกนสำเร็จ",
-          description: `ข้อมูล: ${result}`,
-        });
-        // In a real app, we would call an API here
+        if (!isClaimed && !mutation.isPending) {
+          setScanResult(result);
+          scanner.clear();
+          mutation.mutate(result);
+        }
       },
       (error) => {
         // console.warn(error);
@@ -36,7 +69,7 @@ export function ScannerPage() {
     return () => {
       scanner.clear().catch(console.error);
     };
-  }, []);
+  }, [isClaimed]);
 
   return (
     <div className="p-4 pb-24 flex flex-col min-h-[80vh] animate-in fade-in duration-500">
@@ -49,29 +82,41 @@ export function ScannerPage() {
 
       <Card className="flex-1 border-none shadow-lg bg-white/80 backdrop-blur-md overflow-hidden flex flex-col">
         <CardContent className="p-6 flex flex-col items-center justify-center flex-1">
-          <div id="reader" className="w-full max-w-[300px] overflow-hidden rounded-2xl border-2 border-primary/20 shadow-inner bg-slate-900" />
-          
-          <div className="mt-8 text-center space-y-4">
-            <div className="p-4 rounded-full bg-primary/5 inline-flex">
-              <QrCode className="w-10 h-10 text-primary animate-pulse" />
-            </div>
-            <p className="text-slate-500 font-medium">
-              วางคิวอาร์โค้ดในกรอบเพื่อเริ่มการสแกน
-            </p>
-          </div>
-
-          {scanResult && (
-            <div className="mt-8 p-4 rounded-xl bg-green-50 border border-green-100 text-green-700 w-full animate-in zoom-in-95 duration-300">
-              <p className="text-xs font-bold uppercase tracking-wider mb-1 opacity-60 text-green-600">ผลการสแกนล่าสุด</p>
-              <p className="font-mono break-all">{scanResult}</p>
+          {!isClaimed ? (
+            <>
+              <div id="reader" className="w-full max-w-[300px] overflow-hidden rounded-2xl border-2 border-primary/20 shadow-inner bg-slate-900" />
+              
+              <div className="mt-8 text-center space-y-4">
+                <div className="p-4 rounded-full bg-primary/5 inline-flex">
+                  <QrCode className="w-10 h-10 text-primary animate-pulse" />
+                </div>
+                <p className="text-slate-500 font-medium">
+                  {mutation.isPending ? "กำลังตรวจสอบ..." : "วางคิวอาร์โค้ดในกรอบเพื่อรับแต้ม"}
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="text-center space-y-6 animate-in zoom-in-95 duration-500">
+              <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-green-100/50">
+                <CheckCircle2 className="w-12 h-12" strokeWidth={3} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">บันทึกแต้มสำเร็จ!</h2>
+                <p className="text-slate-500">คุณได้รับ 1 แต้มความดีเรียบร้อยแล้ว</p>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 w-full">
+                <p className="text-xs font-bold uppercase tracking-wider mb-1 opacity-60 text-slate-400">ข้อมูลที่สแกน</p>
+                <p className="font-mono break-all text-slate-600">{scanResult}</p>
+              </div>
               <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-3 w-full bg-white text-green-600 border-green-200 hover:bg-green-50"
-                onClick={() => window.location.reload()}
+                className="w-full h-12 rounded-xl text-lg font-bold"
+                onClick={() => {
+                  setIsClaimed(false);
+                  setScanResult(null);
+                }}
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                สแกนใหม่อีกครั้ง
+                <RefreshCw className="w-5 h-5 mr-2" />
+                สแกนแต้มถัดไป
               </Button>
             </div>
           )}
