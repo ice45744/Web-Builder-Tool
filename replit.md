@@ -1,21 +1,18 @@
-# REST Express API Migration
-
-## Overview
-This project is a Node.js/Express REST API with a React frontend (Vite).
-It uses PostgreSQL with Drizzle ORM for data persistence.
+# Project Name: rest-express
+# Description: A Node.js/Express application migrated to the Replit environment, featuring a school management system (S.T. ก้าวหน้า).
 
 ## Tech Stack
-- Frontend: React, Vite, TanStack Query, Shadcn UI
-- Backend: Node.js, Express
-- Database: PostgreSQL, Drizzle ORM
-- Language: TypeScript
+- Node.js 20
+- Express
+- Drizzle ORM (PostgreSQL)
+- Vite (Frontend)
+- Tailwind CSS
+- tsx (Runtime)
 
-## Key Files
-- `server/index.ts`: Entry point for the backend
-- `server/routes.ts`: API routes
-- `shared/schema.ts`: Database schema and types
-- `client/src/App.tsx`: Frontend entry point
-- `drizzle.config.ts`: Drizzle configuration
+## Workflow
+- Start application: `npm run dev` (Port 5000)
 
 ## Deployment
-The app is configured to build with `npm run build` and run with `node ./dist/index.cjs`.
+- Target: Autoscale
+- Build Command: `npm run build`
+- Run Command: `node ./dist/index.cjs`
