@@ -50,8 +50,18 @@ export function ScannerPage() {
   });
 
   const startScanner = async () => {
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      return;
+    }
+
     try {
       setHasError(false);
+      setIsCameraActive(false);
+      
+      // Ensure the element exists before starting
+      const readerElement = document.getElementById("reader");
+      if (!readerElement) return;
+
       const html5QrCode = new Html5Qrcode("reader");
       scannerRef.current = html5QrCode;
 
@@ -69,21 +79,36 @@ export function ScannerPage() {
         () => {} // Ignore scan errors
       );
       setIsCameraActive(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to start scanner:", err);
       setHasError(true);
+      setIsCameraActive(false);
+      
+      const isPermissionError = err?.toString().includes("NotAllowedError") || err?.name === "NotAllowedError";
+      
       toast({
         variant: "destructive",
-        title: "ไม่สามารถเปิดกล้องได้",
-        description: "กรุณาตรวจสอบการอนุญาตเข้าถึงกล้องของคุณ",
+        title: isPermissionError ? "กรุณาอนุญาตการใช้งานกล้อง" : "ไม่สามารถเปิดกล้องได้",
+        description: isPermissionError 
+          ? "กรุณากด 'อนุญาต' (Allow) เพื่อใช้งานกล้องสำหรับสแกน" 
+          : "กรุณาตรวจสอบการเชื่อมต่อกล้องของคุณ",
       });
     }
   };
 
   const stopScanner = async () => {
-    if (scannerRef.current && scannerRef.current.isScanning) {
+    if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
+        // Use clear to remove any leftover elements from the DOM
+        try {
+          scannerRef.current.clear();
+        } catch (e) {
+          // Ignore clear errors if element already removed
+        }
+        scannerRef.current = null;
         setIsCameraActive(false);
       } catch (err) {
         console.error("Failed to stop scanner:", err);
