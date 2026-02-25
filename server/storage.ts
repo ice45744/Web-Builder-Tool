@@ -1,38 +1,84 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { db } from "./db";
+import { users, goodDeeds, garbageTransactions, issues, type User, type InsertUser, type GoodDeed, type InsertGoodDeed, type GarbageTransaction, type Issue, type InsertIssue } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-// modify the interface with any CRUD methods
-// you might need
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getUser(id: number): Promise<User | undefined>;
+  getUserByStudentId(studentId: string): Promise<User | undefined>;
+  createUser(user: InsertUser & { role?: string }): Promise<User>;
+  
+  getGoodDeeds(userId: number): Promise<GoodDeed[]>;
+  createGoodDeed(userId: number, deed: InsertGoodDeed): Promise<GoodDeed>;
+  
+  getGarbageTransactions(userId: number): Promise<GarbageTransaction[]>;
+  addGarbageStamps(userId: number, stamps: number, description: string): Promise<GarbageTransaction>;
+  
+  createIssue(userId: number, issue: InsertIssue): Promise<Issue>;
+  
+  sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true 
+    });
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
+  }
+
+  async getUserByStudentId(studentId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.studentId, studentId));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser & { role?: string }): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async getGoodDeeds(userId: number): Promise<GoodDeed[]> {
+    return await db.select().from(goodDeeds).where(eq(goodDeeds.userId, userId));
+  }
+
+  async createGoodDeed(userId: number, deed: InsertGoodDeed): Promise<GoodDeed> {
+    const [created] = await db.insert(goodDeeds).values({ ...deed, userId }).returning();
+    return created;
+  }
+
+  async getGarbageTransactions(userId: number): Promise<GarbageTransaction[]> {
+    return await db.select().from(garbageTransactions).where(eq(garbageTransactions.userId, userId));
+  }
+
+  async addGarbageStamps(userId: number, stamps: number, description: string): Promise<GarbageTransaction> {
+    const user = await this.getUser(userId);
+    if (user) {
+      await db.update(users)
+        .set({ garbageStamps: user.garbageStamps + stamps })
+        .where(eq(users.id, userId));
+    }
+    
+    const [transaction] = await db.insert(garbageTransactions)
+      .values({ userId, stampsAdded: stamps, description })
+      .returning();
+    return transaction;
+  }
+
+  async createIssue(userId: number, issue: InsertIssue): Promise<Issue> {
+    const [created] = await db.insert(issues).values({ ...issue, userId }).returning();
+    return created;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

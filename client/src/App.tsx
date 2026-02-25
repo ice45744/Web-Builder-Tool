@@ -3,16 +3,42 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Loader2 } from "lucide-react";
 import NotFound from "@/pages/not-found";
+import { AuthPage } from "@/pages/Auth";
+import { HomePage } from "@/pages/Home";
+import { ActivitiesPage } from "@/pages/Activities";
+import { ReportPage } from "@/pages/Report";
+import { ProfilePage } from "@/pages/Profile";
+import { MobileLayout } from "@/components/layout/MobileLayout";
+import { useAuth } from "@/hooks/use-auth";
 
-function Router() {
+// Auth wrapper to handle conditional rendering
+function AuthWrapper() {
+  const { data: user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+
   return (
-    <Switch>
-      {/* Add pages below */}
-      {/* <Route path="/" component={Home}/> */}
-      {/* Fallback to 404 */}
-      <Route component={NotFound} />
-    </Switch>
+    <MobileLayout>
+      <Switch>
+        <Route path="/" component={HomePage} />
+        <Route path="/activities" component={ActivitiesPage} />
+        <Route path="/report" component={ReportPage} />
+        <Route path="/profile" component={ProfilePage} />
+        <Route component={NotFound} />
+      </Switch>
+    </MobileLayout>
   );
 }
 
@@ -21,7 +47,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <AuthWrapper />
       </TooltipProvider>
     </QueryClientProvider>
   );
