@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { useEffect, useState, useRef } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { QrCode, ArrowLeft, RefreshCw, CheckCircle2 } from "lucide-react";
+import { QrCode, ArrowLeft, RefreshCw, CheckCircle2, Camera } from "lucide-react";
 import { api } from "@shared/routes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -13,7 +13,10 @@ export function ScannerPage() {
   const [, setLocation] = useLocation();
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [isClaimed, setIsClaimed] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const queryClient = useQueryClient();
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   const mutation = useMutation({
     mutationFn: async (code: string) => {
@@ -46,29 +49,54 @@ export function ScannerPage() {
     }
   });
 
-  useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
+  const startScanner = async () => {
+    try {
+      setHasError(false);
+      const html5QrCode = new Html5Qrcode("reader");
+      scannerRef.current = html5QrCode;
 
-    scanner.render(
-      (result) => {
-        if (!isClaimed && !mutation.isPending) {
-          setScanResult(result);
-          // Don't stop the scanner immediately to avoid camera freeze on some devices
-          // scanner.clear(); 
-          mutation.mutate(result);
-        }
-      },
-      (error) => {
-        // console.warn(error);
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+          if (!isClaimed && !mutation.isPending) {
+            setScanResult(decodedText);
+            mutation.mutate(decodedText);
+          }
+        },
+        () => {} // Ignore scan errors
+      );
+      setIsCameraActive(true);
+    } catch (err) {
+      console.error("Failed to start scanner:", err);
+      setHasError(true);
+      toast({
+        variant: "destructive",
+        title: "ไม่สามารถเปิดกล้องได้",
+        description: "กรุณาตรวจสอบการอนุญาตเข้าถึงกล้องของคุณ",
+      });
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      try {
+        await scannerRef.current.stop();
+        setIsCameraActive(false);
+      } catch (err) {
+        console.error("Failed to stop scanner:", err);
       }
-    );
+    }
+  };
 
+  useEffect(() => {
+    if (!isClaimed) {
+      startScanner();
+    }
     return () => {
-      scanner.clear().catch(console.error);
+      stopScanner();
     };
   }, [isClaimed]);
 
@@ -85,7 +113,31 @@ export function ScannerPage() {
         <CardContent className="p-6 flex flex-col items-center justify-center flex-1">
           {!isClaimed ? (
             <>
-              <div id="reader" className="w-full max-w-[300px] overflow-hidden rounded-2xl border-2 border-primary/20 shadow-inner bg-slate-900" />
+              <div 
+                id="reader" 
+                className={`w-full max-w-[300px] aspect-square overflow-hidden rounded-2xl border-2 border-primary/20 shadow-inner bg-slate-900 relative ${!isCameraActive ? 'flex items-center justify-center' : ''}`}
+              >
+                {!isCameraActive && !hasError && (
+                  <div className="flex flex-col items-center gap-2 text-white/50">
+                    <RefreshCw className="w-8 h-8 animate-spin" />
+                    <p className="text-sm">กำลังเปิดกล้อง...</p>
+                  </div>
+                )}
+                {hasError && (
+                  <div className="flex flex-col items-center gap-4 p-6 text-center text-white/70">
+                    <Camera className="w-12 h-12 opacity-50" />
+                    <p className="text-sm">ไม่สามารถเข้าถึงกล้องได้</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-white border-white/20 hover:bg-white/10"
+                      onClick={startScanner}
+                    >
+                      ลองใหม่อีกครั้ง
+                    </Button>
+                  </div>
+                )}
+              </div>
               
               <div className="mt-8 text-center space-y-4">
                 <div className="p-4 rounded-full bg-primary/5 inline-flex">
