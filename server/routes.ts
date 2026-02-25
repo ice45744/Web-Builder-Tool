@@ -79,7 +79,8 @@ export async function registerRoutes(
       if (existingUser) {
         return res.status(400).json({ message: "Student ID already registered" });
       }
-      const role = input.committeeCode === "STCOUNCIL2026" ? "committee" : "student";
+      const committeeCode = process.env.COMMITTEE_CODE;
+      const role = (committeeCode && input.committeeCode === committeeCode) ? "committee" : "student";
       const hashedPassword = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
       const user = await storage.createUser({ ...input, password: hashedPassword, role });
       req.login(user, (err) => {
