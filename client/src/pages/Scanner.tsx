@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +16,8 @@ export function ScannerPage() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [hasError, setHasError] = useState(false);
   const queryClient = useQueryClient();
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const controlsRef = useRef<any>(null);
 
   const mutation = useMutation({
     mutationFn: async (code: string) => {
@@ -50,48 +51,41 @@ export function ScannerPage() {
   });
 
   const startScanner = async () => {
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      return;
-    }
-
     try {
       setHasError(false);
       setIsCameraActive(false);
-      
-      // Ensure the element exists before starting
-      const readerElement = document.getElementById("reader");
-      if (!readerElement) return;
 
-      // Clean up any existing instance properly first
-      if (scannerRef.current) {
-        try {
-          await scannerRef.current.clear();
-        } catch (e) {}
+      if (controlsRef.current) {
+        controlsRef.current.stop();
+        controlsRef.current = null;
       }
 
-      const html5QrCode = new Html5Qrcode("reader");
-      scannerRef.current = html5QrCode;
+      const reader = new BrowserMultiFormatReader();
+      readerRef.current = reader;
 
-      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+      const videoElement = document.getElementById("video-preview") as HTMLVideoElement;
+      if (!videoElement) return;
 
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        config,
-        (decodedText) => {
-          if (!isClaimed && !mutation.isPending) {
-            setScanResult(decodedText);
-            mutation.mutate(decodedText);
+      const controls = await reader.decodeFromVideoDevice(
+        undefined, 
+        videoElement,
+        (result, error) => {
+          if (result && !isClaimed && !mutation.isPending) {
+            const text = result.getText();
+            setScanResult(text);
+            mutation.mutate(text);
           }
-        },
-        () => {} // Ignore scan errors
+        }
       );
+
+      controlsRef.current = controls;
       setIsCameraActive(true);
     } catch (err: any) {
       console.error("Failed to start scanner:", err);
       setHasError(true);
       setIsCameraActive(false);
       
-      const isPermissionError = err?.toString().includes("NotAllowedError") || err?.name === "NotAllowedError";
+      const isPermissionError = err?.name === "NotAllowedError" || err?.message?.includes("Permission");
       
       toast({
         variant: "destructive",
@@ -103,31 +97,19 @@ export function ScannerPage() {
     }
   };
 
-  const stopScanner = async () => {
-    if (scannerRef.current) {
-      const scanner = scannerRef.current;
-      scannerRef.current = null; // Clear ref immediately to prevent race conditions
-      
-      try {
-        if (scanner.isScanning) {
-          await scanner.stop();
-        }
-        
-        // Always try to clear to remove UI elements
-        try {
-          await scanner.clear();
-        } catch (e) {}
-        
-        setIsCameraActive(false);
-      } catch (err) {
-        console.error("Failed to stop scanner:", err);
-      }
+  const stopScanner = () => {
+    if (controlsRef.current) {
+      controlsRef.current.stop();
+      controlsRef.current = null;
     }
+    setIsCameraActive(false);
   };
 
   useEffect(() => {
     if (!isClaimed) {
       startScanner();
+    } else {
+      stopScanner();
     }
     return () => {
       stopScanner();
@@ -147,9 +129,12 @@ export function ScannerPage() {
         <CardContent className="p-6 flex flex-col items-center justify-center flex-1">
           <div className={isClaimed ? "hidden" : "w-full flex flex-col items-center"}>
             <div 
-              id="reader" 
               className={`w-full max-w-[300px] aspect-square overflow-hidden rounded-2xl border-2 border-primary/20 shadow-inner bg-slate-900 relative ${!isCameraActive ? 'flex items-center justify-center' : ''}`}
             >
+              <video 
+                id="video-preview" 
+                className={`w-full h-full object-cover ${!isCameraActive ? 'hidden' : 'block'}`}
+              />
               {!isCameraActive && !hasError && (
                 <div className="flex flex-col items-center gap-2 text-white/50">
                   <RefreshCw className="w-8 h-8 animate-spin" />
