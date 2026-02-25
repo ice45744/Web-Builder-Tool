@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertGoodDeedSchema, insertIssueSchema, insertUserSchema, users, goodDeeds, issues, garbageTransactions } from './schema';
+import { insertGoodDeedSchema, insertIssueSchema, insertUserSchema, insertAnnouncementSchema, users, goodDeeds, issues, garbageTransactions, announcements } from './schema';
 
 export const errorSchemas = {
   validation: z.object({ message: z.string(), field: z.string().optional() }),
@@ -79,6 +79,24 @@ export const api = {
       input: insertIssueSchema,
       responses: {
         201: z.custom<typeof issues.$inferSelect>(),
+        400: errorSchemas.validation
+      }
+    }
+  },
+  announcements: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/announcements' as const,
+      responses: {
+        200: z.array(z.custom<typeof announcements.$inferSelect>())
+      }
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/announcements' as const,
+      input: insertAnnouncementSchema,
+      responses: {
+        201: z.custom<typeof announcements.$inferSelect>(),
         400: errorSchemas.validation
       }
     }

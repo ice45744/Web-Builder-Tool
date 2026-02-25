@@ -1,10 +1,18 @@
 import { motion } from "framer-motion";
-import { Bell, ChevronRight, Award, Recycle, ClipboardList, AlertTriangle } from "lucide-react";
+import { Bell, ChevronRight, Award, Recycle, ClipboardList, AlertTriangle, BookOpen, QrCode } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@shared/routes";
+import { type Announcement } from "@shared/schema";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
 
 export function HomePage() {
   const { data: user } = useAuth();
+  const { data: announcements } = useQuery<Announcement[]>({
+    queryKey: [api.announcements.list.path],
+  });
 
   if (!user) return null;
 
@@ -69,40 +77,32 @@ export function HomePage() {
             <h2 className="text-lg font-bold text-slate-800 font-display flex items-center gap-2">
               <Bell size={18} className="text-primary" /> ประกาศจากสภานักเรียน
             </h2>
-            <button className="text-xs font-medium text-primary hover:underline">ดูทั้งหมด</button>
+            <Link href="/announcements" className="text-xs font-medium text-primary hover:underline">ดูทั้งหมด</Link>
           </div>
 
           <div className="space-y-3">
-            {/* Mock Announcement 1 */}
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex gap-4 items-start active:scale-[0.98] transition-transform">
-              {/* school activity landing page photo */}
-              <div className="w-16 h-16 rounded-xl bg-slate-200 shrink-0 overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&h=400&fit=crop" alt="Activity" className="w-full h-full object-cover" />
+            {announcements && announcements.length > 0 ? (
+              announcements.slice(0, 2).map((ann) => (
+                <Link key={ann.id} href="/announcements" className="block bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex gap-4 items-start active:scale-[0.98] transition-transform">
+                  <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center shrink-0 text-orange-500">
+                    <Bell size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] text-slate-400">
+                        {ann.createdAt && format(new Date(ann.createdAt), "d MMM yyyy", { locale: th })}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-sm text-slate-800 truncate">{ann.title}</h3>
+                    <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{ann.content}</p>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center text-slate-400 text-sm">
+                ยังไม่มีประกาศใหม่
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded-md">ด่วน</span>
-                  <span className="text-[10px] text-slate-400">วันนี้ 08:30</span>
-                </div>
-                <h3 className="font-semibold text-sm text-slate-800 truncate">เชิญชวนร่วมบริจาคขยะรีไซเคิล</h3>
-                <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">กิจกรรมธนาคารขยะเปิดรับฝากขวดพลาสติก แลกรับแสตมป์พิเศษ 2 เท่า เฉพาะสัปดาห์นี้</p>
-              </div>
-            </div>
-
-            {/* Mock Announcement 2 */}
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex gap-4 items-start active:scale-[0.98] transition-transform">
-              <div className="w-16 h-16 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-500">
-                <Award size={24} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 bg-blue-100 text-blue-600 text-[10px] font-bold rounded-md">ทั่วไป</span>
-                  <span className="text-[10px] text-slate-400">เมื่อวาน</span>
-                </div>
-                <h3 className="font-semibold text-sm text-slate-800 truncate">ประกาศผลคะแนนความดีประจำเดือน</h3>
-                <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">ตรวจสอบรายชื่อนักเรียนที่มีคะแนนความดีสูงสุด 10 อันดับแรกของโรงเรียนได้แล้ว</p>
-              </div>
-            </div>
+            )}
           </div>
         </motion.div>
 
@@ -113,7 +113,7 @@ export function HomePage() {
           transition={{ delay: 0.3 }}
           className="mt-6"
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <Link href="/activities" className="bg-primary/5 border border-primary/10 p-4 rounded-2xl flex flex-col gap-2 active:bg-primary/10 transition-colors">
               <ClipboardList className="text-primary w-6 h-6" />
               <span className="text-sm font-semibold text-primary">บันทึกกิจกรรม</span>
@@ -121,6 +121,16 @@ export function HomePage() {
             <Link href="/report" className="bg-orange-50 border border-orange-100 p-4 rounded-2xl flex flex-col gap-2 active:bg-orange-100 transition-colors">
               <AlertTriangle className="text-orange-500 w-6 h-6" />
               <span className="text-sm font-semibold text-orange-600">แจ้งเรื่องร้องเรียน</span>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Link href="/manual" className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col gap-2 active:bg-slate-100 transition-colors">
+              <BookOpen className="text-slate-600 w-6 h-6" />
+              <span className="text-sm font-semibold text-slate-700">คู่มือการใช้งาน</span>
+            </Link>
+            <Link href="/scanner" className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex flex-col gap-2 active:bg-emerald-100 transition-colors">
+              <QrCode className="text-emerald-600 w-6 h-6" />
+              <span className="text-sm font-semibold text-emerald-700">สแกนเช็คชื่อ</span>
             </Link>
           </div>
         </motion.div>

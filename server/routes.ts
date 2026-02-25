@@ -146,5 +146,26 @@ export async function registerRoutes(
     }
   });
 
+  app.get(api.announcements.list.path, async (req, res) => {
+    const list = await storage.getAnnouncements();
+    res.status(200).json(list);
+  });
+
+  app.post(api.announcements.create.path, requireAuth, async (req: any, res) => {
+    if (req.user.role !== "committee") {
+      return res.status(403).json({ message: "Only committee can post announcements" });
+    }
+    try {
+      const input = api.announcements.create.input.parse(req.body);
+      const announcement = await storage.createAnnouncement(input);
+      res.status(201).json(announcement);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   return httpServer;
 }

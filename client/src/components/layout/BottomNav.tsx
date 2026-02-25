@@ -1,12 +1,12 @@
 import { Link, useLocation } from "wouter";
-import { Home, ClipboardList, AlertTriangle, UserCircle } from "lucide-react";
+import { Home, ClipboardList, Megaphone, UserCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { path: "/", label: "หน้าหลัก", icon: Home },
   { path: "/activities", label: "กิจกรรม", icon: ClipboardList },
-  { path: "/report", label: "แจ้งปัญหา", icon: AlertTriangle },
+  { path: "/announcements", label: "ประกาศ", icon: Megaphone },
   { path: "/profile", label: "โปรไฟล์", icon: UserCircle },
 ];
 

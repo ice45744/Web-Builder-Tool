@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { users, goodDeeds, garbageTransactions, issues, type User, type InsertUser, type GoodDeed, type InsertGoodDeed, type GarbageTransaction, type Issue, type InsertIssue } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, goodDeeds, garbageTransactions, issues, announcements, type User, type InsertUser, type GoodDeed, type InsertGoodDeed, type GarbageTransaction, type Issue, type InsertIssue, type Announcement, type InsertAnnouncement } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -19,6 +19,9 @@ export interface IStorage {
   addGarbageStamps(userId: number, stamps: number, description: string): Promise<GarbageTransaction>;
   
   createIssue(userId: number, issue: InsertIssue): Promise<Issue>;
+
+  getAnnouncements(): Promise<Announcement[]>;
+  createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
   
   sessionStore: session.Store;
 }
@@ -77,6 +80,15 @@ export class DatabaseStorage implements IStorage {
 
   async createIssue(userId: number, issue: InsertIssue): Promise<Issue> {
     const [created] = await db.insert(issues).values({ ...issue, userId }).returning();
+    return created;
+  }
+
+  async getAnnouncements(): Promise<Announcement[]> {
+    return await db.select().from(announcements).orderBy(desc(announcements.createdAt));
+  }
+
+  async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
+    const [created] = await db.insert(announcements).values(announcement).returning();
     return created;
   }
 }

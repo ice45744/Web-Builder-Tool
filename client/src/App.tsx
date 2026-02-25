@@ -10,6 +10,9 @@ import { HomePage } from "@/pages/Home";
 import { ActivitiesPage } from "@/pages/Activities";
 import { ReportPage } from "@/pages/Report";
 import { ProfilePage } from "@/pages/Profile";
+import { ManualPage } from "@/pages/Manual";
+import { AnnouncementsPage } from "@/pages/Announcements";
+import { ScannerPage } from "@/pages/Scanner";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -36,6 +39,9 @@ function AuthWrapper() {
         <Route path="/activities" component={ActivitiesPage} />
         <Route path="/report" component={ReportPage} />
         <Route path="/profile" component={ProfilePage} />
+        <Route path="/manual" component={ManualPage} />
+        <Route path="/announcements" component={AnnouncementsPage} />
+        <Route path="/scanner" component={ScannerPage} />
         <Route component={NotFound} />
       </Switch>
     </MobileLayout>

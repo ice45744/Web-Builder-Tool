@@ -40,9 +40,18 @@ export const issues = pgTable("issues", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const announcements = pgTable("announcements", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  authorRole: text("author_role").notNull().default("committee"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, role: true, goodDeedPoints: true, garbageStamps: true });
 export const insertGoodDeedSchema = createInsertSchema(goodDeeds).omit({ id: true, userId: true, status: true, createdAt: true });
 export const insertIssueSchema = createInsertSchema(issues).omit({ id: true, userId: true, status: true, createdAt: true });
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({ id: true, createdAt: true });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -51,3 +60,5 @@ export type InsertGoodDeed = z.infer<typeof insertGoodDeedSchema>;
 export type GarbageTransaction = typeof garbageTransactions.$inferSelect;
 export type Issue = typeof issues.$inferSelect;
 export type InsertIssue = z.infer<typeof insertIssueSchema>;
+export type Announcement = typeof announcements.$inferSelect;
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
